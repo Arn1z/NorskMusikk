@@ -1,0 +1,21 @@
+{
+  "schema": {
+    "leaderboard": {
+      "__schema__": {
+        "playerName": "string",
+        "score": "number",
+        "pvpWins": "number",
+        "difficulty": "string",
+        "createdAt": "timestamp"
+      }
+    }
+  },
+  "securityRules": {
+    "leaderboard": {
+      "read": "if true;",
+      "create": "if request.resource.data.score is number;",
+      "update": "if request.resource.data.score is number;",
+      "delete": "if false;"
+    }
+  }
+}

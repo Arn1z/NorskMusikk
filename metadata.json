@@ -1,0 +1,6 @@
+{
+  "name": "Norsk Sang-Quiz",
+  "description": "Gjett norske sanger fra korte lydklipp. Velg mellom 4 vanskelighetsgrader: Lett, Medium, Vanskelig, og Umulig.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
