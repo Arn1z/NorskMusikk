@@ -89,7 +89,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish, region
         setIsPlaying(false);
       }, duration);
     }).catch((err) => {
-      console.error("Audio play failed:", err);
+      if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+        console.error("Audio play failed:", err);
+      }
       setIsPlaying(false);
     });
   };

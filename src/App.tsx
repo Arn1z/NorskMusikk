@@ -51,6 +51,10 @@ export default function App() {
         const data = docSnap.data();
         if (data.status === 'playing') {
           setGameState('pvp_playing');
+        } else if (data.status === 'finished') {
+          // Room was cancelled or timed out
+          alert(t('errorGeneric', uiLanguage) + " (Køen tok for lang tid / Matchmaking timeout)");
+          setGameState('start');
         }
       }
     });
@@ -94,18 +98,31 @@ export default function App() {
       const q = query(collection(db, 'pvp_rooms'), where('status', '==', 'waiting'), where('region', '==', 'global'));
       const querySnapshot = await getDocs(q);
       
-      if (!querySnapshot.empty) {
-        const roomDoc = querySnapshot.docs[0];
+      let foundRoom = false;
+      for (const roomDoc of querySnapshot.docs) {
+        const data = roomDoc.data();
+        const createdAt = data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now();
+        if (Date.now() - createdAt > 60000) {
+           // Clean up stale room
+           updateDoc(doc(db, 'pvp_rooms', roomDoc.id), { status: 'finished' }).catch(console.error);
+           continue;
+        }
+        
         setRoomId(roomDoc.id);
         setIsPlayer1(false);
-        setTracks(roomDoc.data().tracks);
+        setTracks(data.tracks);
         
         await updateDoc(doc(db, 'pvp_rooms', roomDoc.id), {
           player2: user.uid,
           player2Name: profile?.displayName || 'Player 2',
-          status: 'playing'
+          status: 'playing',
+          player2LastPing: Date.now()
         });
-      } else {
+        foundRoom = true;
+        break;
+      }
+
+      if (!foundRoom) {
         const fetchedTracks = await fetchTracks(difficulty, 'global', 'all');
         if (fetchedTracks.length === 0) {
           alert(t('errorFetch', uiLanguage));
@@ -126,11 +143,18 @@ export default function App() {
           player1Score: 0,
           player2Score: 0,
           currentRound: 0,
+          trackIndex: 0,
           tracks: fetchedTracks,
           player1GuessedCorrectly: false,
           player2GuessedCorrectly: false,
+          player1Guesses: 0,
+          player2Guesses: 0,
+          player1Skip: false,
+          player2Skip: false,
+          chat: [],
           firstGuesserId: null,
-          roundEndsAt: null
+          roundEndsAt: null,
+          player1LastPing: Date.now()
         });
         setRoomId(newRoomRef.id);
       }
@@ -150,7 +174,7 @@ export default function App() {
   const handlePvpFinish = async (myScore: number, oppScore: number) => {
     setScore(myScore);
     setOpponentScore(oppScore);
-    setTotalRounds(tracks.length * 1000);
+    setTotalRounds(3);
     setGameState('pvp_result');
 
     if (user && profile) {
@@ -168,6 +192,7 @@ export default function App() {
   const handleRestart = () => {
     setGameState('start');
     setTracks([]);
+    setRoomId(null);
     setScore(0);
     setOpponentScore(0);
   };

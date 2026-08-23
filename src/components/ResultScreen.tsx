@@ -20,10 +20,25 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRest
   const [copied, setCopied] = useState(false);
 
   let message = "";
+  let displayScore = score;
+  let displayOppScore = opponentScore || 0;
+  
   if (isPvp) {
-    if (score > (opponentScore || 0)) message = t('win', uiLanguage);
-    else if (score < (opponentScore || 0)) message = t('lose', uiLanguage);
-    else message = t('tie', uiLanguage);
+    if (score === 99) {
+      message = uiLanguage === 'no' ? "Motstanderen forlot spillet. Du vinner!" : "Opponent left the game. You win!";
+      displayScore = 3;
+      displayOppScore = 0;
+    } else if (opponentScore === 99) {
+      message = uiLanguage === 'no' ? "Du forlot spillet." : "You left the game.";
+      displayScore = 0;
+      displayOppScore = 3;
+    } else if (score > (opponentScore || 0)) {
+      message = t('win', uiLanguage);
+    } else if (score < (opponentScore || 0)) {
+      message = t('lose', uiLanguage);
+    } else {
+      message = t('tie', uiLanguage);
+    }
   } else {
     if (percentage === 100) message = t('perfect', uiLanguage);
     else if (percentage >= 80) message = t('great', uiLanguage);
@@ -34,7 +49,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRest
   const handleShare = async () => {
     let textToShare = "";
     if (isPvp) {
-      textToShare = `🎵 Music Quiz PVP!\nI scored ${score} vs ${opponentScore}!\nCan you beat me?`;
+      textToShare = `🎵 Music Quiz PVP!\nI scored ${displayScore} vs ${displayOppScore}!\nCan you beat me?`;
     } else {
       textToShare = `🎵 Music Quiz!\nI scored ${score}/${total} on ${difficulty || 'easy'} difficulty!\nCan you beat me?`;
     }
@@ -80,12 +95,12 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRest
           {isPvp ? (
             <div className="flex items-center justify-center gap-12 w-full">
               <div className="flex flex-col items-center">
-                <div className="text-6xl font-bold text-emerald-400 font-display">{score}</div>
+                <div className="text-6xl font-bold text-emerald-400 font-display">{displayScore}</div>
                 <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">{t('you', uiLanguage)}</p>
               </div>
               <div className="text-4xl font-bold text-neutral-700">-</div>
               <div className="flex flex-col items-center">
-                <div className="text-6xl font-bold text-red-400 font-display">{opponentScore}</div>
+                <div className="text-6xl font-bold text-red-400 font-display">{displayOppScore}</div>
                 <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">{t('opponent', uiLanguage)}</p>
               </div>
             </div>

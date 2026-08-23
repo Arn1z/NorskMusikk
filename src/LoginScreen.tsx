@@ -41,9 +41,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ uiLanguage, onCancel }
       } else if (mode === 'signup') {
         if (!password || !displayName) throw new Error('required');
         await signupWithEmail(email, password, displayName);
-        setMode('login');
-        setMessage(t('verifyEmailSent', uiLanguage));
-        setPassword('');
+        onCancel(); // Close modal on success (auto logged in)
       } else if (mode === 'forgot') {
         await resetPassword(email);
         setMessage(t('resetEmailSent', uiLanguage));

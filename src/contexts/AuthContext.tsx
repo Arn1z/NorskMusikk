@@ -8,8 +8,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
-  updateProfile,
-  sendEmailVerification
+  updateProfile
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, onSnapshot, getDoc, setDoc } from 'firebase/firestore';
@@ -61,17 +60,11 @@ export const signupWithEmail = async (email: string, password: string, displayNa
     gamesPlayed: 0
   });
   
-  await sendEmailVerification(result.user);
-  await signOut(auth);
   return result.user;
 };
 
 export const loginWithEmail = async (email: string, password: string) => {
   const result = await signInWithEmailAndPassword(auth, email, password);
-  if (!result.user.emailVerified) {
-    await signOut(auth);
-    throw new Error('unverified');
-  }
   return result;
 };
 

@@ -4,6 +4,8 @@ import { Leaderboard } from './Leaderboard';
 import { t } from '../i18n';
 import { ChevronDown, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface StartScreenProps {
   onSelectDifficulty: (difficulty: Difficulty) => void;
@@ -40,8 +42,27 @@ export const StartScreen: React.FC<StartScreenProps> = ({
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
   const [isGenreDropdownOpen, setIsGenreDropdownOpen] = useState(false);
   
+  const [queueCount, setQueueCount] = useState<number>(0);
+    
   const regionRef = useRef<HTMLDivElement>(null);
   const genreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const q = query(collection(db, 'pvp_rooms'), where('status', '==', 'waiting'), where('region', '==', 'global'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let count = 0;
+      const now = Date.now();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const createdAt = data.createdAt?.toMillis ? data.createdAt.toMillis() : now;
+        if (now - createdAt <= 60000) {
+          count++;
+        }
+      });
+      setQueueCount(count);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -190,10 +211,15 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                   if (!user) onRequireLogin();
                   else if (onJoinPvp) onJoinPvp();
                 }}
-                className="w-full py-5 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
+                className="w-full py-5 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-transform active:scale-[0.98] flex flex-col items-center justify-center gap-1"
               >
-                {!user && <Lock className="w-4 h-4 text-neutral-400" />}
-                {t('playPvp', uiLanguage)}
+                <div className="flex items-center gap-2">
+                  {!user && <Lock className="w-4 h-4 text-neutral-400" />}
+                  {t('playPvp', uiLanguage)}
+                </div>
+                {user && (
+                  <span className="text-[10px] text-emerald-400 tracking-widest">{queueCount} {t('queueCount', uiLanguage)}</span>
+                )}
               </button>
               <p className="text-neutral-500 text-xs mt-6 tracking-wide">{t('diffHint', uiLanguage)}</p>
             </div>
