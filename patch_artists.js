@@ -1,4 +1,6 @@
-import { Difficulty, Region } from './types';
+import fs from 'fs';
+
+const content = `import { Difficulty, Region } from './types';
 
 export const ARTISTS_BY_REGION: Record<Region, Record<Difficulty, string[]>> = {
   global: {
@@ -77,3 +79,5 @@ export const ARTISTS_BY_GENRE: Record<Region, Record<string, string[]>> = {
     country: ['The Shires', 'Ward Thomas', 'Catherine McGrath', 'Mumford & Sons', 'Frank Turner', 'Passenger', 'Laura Marling', 'Bears Den', 'Ben Howard', 'George Ezra', 'Jake Bugg', 'Tom Odell', 'James Morrison', 'Paolo Nutini', 'KT Tunstall', 'Amy Macdonald']
   }
 };
+`;
+fs.writeFileSync('src/artists.ts', content, 'utf8');

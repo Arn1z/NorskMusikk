@@ -15,6 +15,8 @@ interface StartScreenProps {
   setRegion: (r: Region) => void;
   genre: Genre;
   setGenre: (g: Genre) => void;
+  difficulty: Difficulty;
+  setDifficulty: (d: Difficulty) => void;
   uiLanguage: Language;
   onRequireLogin: () => void;
 }
@@ -33,10 +35,11 @@ const GENRE_OPTIONS: { id: Genre; label: string }[] = [
   { id: 'pop', label: 'Pop' },
   { id: 'rock', label: 'Rock' },
   { id: 'rap', label: 'Rap' },
+  { id: 'country', label: 'Country' },
 ];
 
 export const StartScreen: React.FC<StartScreenProps> = ({ 
-  onSelectDifficulty, isLoading, onJoinPvp, region, setRegion, genre, setGenre, uiLanguage, onRequireLogin 
+  onSelectDifficulty, isLoading, onJoinPvp, region, setRegion, genre, setGenre, difficulty, setDifficulty, uiLanguage, onRequireLogin 
 }) => {
   const { user } = useAuth();
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
@@ -136,7 +139,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                           setRegion(r.id);
                           setIsRegionDropdownOpen(false);
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-colors text-left ${
                           region === r.id 
                             ? 'bg-emerald-500/10 text-emerald-400' 
                             : 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100'
@@ -193,6 +196,26 @@ export const StartScreen: React.FC<StartScreenProps> = ({
             
           </div>
 
+          {/* Difficulty Selection */}
+          <div className="flex gap-4 sm:gap-8 justify-center border-b border-white/10 pb-4 w-full max-w-md mx-auto mb-6">
+            {(['lett', 'medium', 'vanskelig', 'umulig'] as Difficulty[]).map((d) => (
+              <button
+                key={d}
+                onClick={() => setDifficulty(d)}
+                className={`text-xs sm:text-sm font-semibold tracking-widest uppercase transition-all relative ${
+                  difficulty === d
+                    ? 'text-emerald-400' 
+                    : 'text-neutral-400 hover:text-neutral-200'
+                }`}
+              >
+                {t(d as any, uiLanguage)}
+                {difficulty === d && (
+                  <div className="absolute -bottom-[17px] left-0 w-full h-[2px] bg-emerald-400"></div>
+                )}
+              </button>
+            ))}
+          </div>
+
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -201,7 +224,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           ) : (
             <div className="w-full space-y-4 pt-2 relative z-10">
               <button
-                onClick={() => onSelectDifficulty('lett')}
+                onClick={() => onSelectDifficulty(difficulty)}
                 className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-transform active:scale-[0.98] block"
               >
                 {t('startGame', uiLanguage)}

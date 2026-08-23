@@ -15,11 +15,14 @@ export const fetchTracks = async (difficulty: Difficulty, region: Region = 'glob
 
   const allTracks: Track[] = [];
 
-  const fetchPromises = artists.map(async (artist) => {
+  // Randomly select up to 15 artists to prevent API rate limits, while keeping the total pool huge
+  const selectedArtists = artists.sort(() => 0.5 - Math.random()).slice(0, 15);
+
+  const fetchPromises = selectedArtists.map(async (artist) => {
     try {
       // Map region to iTunes country code (use 'us' for global)
       let countryCode = region === 'global' ? 'us' : region === 'uk' ? 'gb' : region;
-      const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&media=music&entity=song&limit=15&country=${countryCode}`);
+      const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&media=music&entity=song&limit=30&country=${countryCode}`);
       const data = await response.json();
       
       return data.results

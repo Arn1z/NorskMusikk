@@ -214,25 +214,27 @@ export default function App() {
         </div>
         
         <div className="flex flex-col md:flex-row items-center gap-6">
-          <div className="flex gap-8 border-b border-white/10 pb-2">
-            {(['lett', 'medium', 'vanskelig', 'umulig'] as Difficulty[]).map((d) => (
-              <button
-                key={d}
-                onClick={() => handleStart(d, region, genre)}
-                disabled={gameState === 'loading'}
-                className={`text-sm font-semibold tracking-widest uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed relative ${
-                  difficulty === d && gameState !== 'start'
-                    ? 'text-emerald-400' 
-                    : 'text-neutral-400 hover:text-neutral-200'
-                }`}
-              >
-                {t(d as any, uiLanguage)}
-                {difficulty === d && gameState !== 'start' && (
-                  <div className="absolute -bottom-[9px] left-0 w-full h-[2px] bg-emerald-400"></div>
-                )}
-              </button>
-            ))}
-          </div>
+          {gameState !== 'start' && gameState !== 'loading' && gameState !== 'pvp_queue' && (
+            <div className="flex gap-8 border-b border-white/10 pb-2">
+              {(['lett', 'medium', 'vanskelig', 'umulig'] as Difficulty[]).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => handleStart(d, region, genre)}
+                  disabled={gameState === 'loading'}
+                  className={`text-sm font-semibold tracking-widest uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed relative ${
+                    difficulty === d && gameState !== 'start'
+                      ? 'text-emerald-400' 
+                      : 'text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  {t(d as any, uiLanguage)}
+                  {difficulty === d && gameState !== 'start' && (
+                    <div className="absolute -bottom-[9px] left-0 w-full h-[2px] bg-emerald-400"></div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             <div className="flex bg-neutral-900/80 p-1 rounded-xl border border-neutral-800 backdrop-blur-sm">
@@ -273,8 +275,8 @@ export default function App() {
       </nav>
 
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center pb-12">
-        {gameState === 'start' && <StartScreen onSelectDifficulty={(diff) => handleStart(diff, region, genre)} onJoinPvp={() => handleJoinPvp()} region={region} setRegion={setRegion} genre={genre} setGenre={setGenre} uiLanguage={uiLanguage} onRequireLogin={() => setShowLoginPrompt(true)} />}
-        {gameState === 'loading' && <StartScreen onSelectDifficulty={() => {}} isLoading={true} region={region} setRegion={setRegion} genre={genre} setGenre={setGenre} uiLanguage={uiLanguage} onRequireLogin={() => {}} />}
+        {gameState === 'start' && <StartScreen onSelectDifficulty={(diff) => handleStart(diff, region, genre)} onJoinPvp={() => handleJoinPvp()} region={region} setRegion={setRegion} genre={genre} setGenre={setGenre} difficulty={difficulty} setDifficulty={setDifficulty} uiLanguage={uiLanguage} onRequireLogin={() => setShowLoginPrompt(true)} />}
+        {gameState === 'loading' && <StartScreen onSelectDifficulty={() => {}} isLoading={true} region={region} setRegion={setRegion} genre={genre} setGenre={setGenre} difficulty={difficulty} setDifficulty={setDifficulty} uiLanguage={uiLanguage} onRequireLogin={() => {}} />}
         
         {gameState === 'pvp_queue' && (
           <div className="flex flex-col items-center text-center">

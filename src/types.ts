@@ -1,6 +1,6 @@
 export type Difficulty = 'lett' | 'medium' | 'vanskelig' | 'umulig';
 export type Region = 'global' | 'no' | 'se' | 'dk' | 'us' | 'uk';
-export type Genre = 'all' | 'pop' | 'rock' | 'rap';
+export type Genre = 'all' | 'pop' | 'rock' | 'rap' | 'country';
 export type Language = 'no' | 'en';
 
 export interface Track {
