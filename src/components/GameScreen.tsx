@@ -43,6 +43,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
       .slice(0, 5);
   }, [tracks, searchQuery]);
 
+  const [roundStartTime, setRoundStartTime] = useState<number>(Date.now());
+
   useEffect(() => {
     if (currentTrack) {
       if (audioRef.current) {
@@ -58,8 +60,15 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
       setGuess('');
       setSearchQuery('');
       setGuessHistory([]);
+      setRoundStartTime(Date.now());
     }
-  }, [currentRound, currentTrack, volume, isMuted]);
+  }, [currentRound, currentTrack]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
 
   const handlePlay = () => {
     if (!audioRef.current || isPlaying) return;
@@ -122,7 +131,17 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
       submitGuess.toLowerCase() === `${currentTrack.artistName.toLowerCase()} - ${currentTrack.trackName.toLowerCase()}`;
 
     if (isCorrect) {
-      setScore(prev => prev + 1);
+      const timeTakenMs = Date.now() - roundStartTime;
+      const timeTakenSec = Math.floor(timeTakenMs / 1000);
+      
+      // Calculate points based on step (interval length) and time taken
+      const maxStepPoints = [1000, 800, 600, 400, 200][step] || 200;
+      // Lose 5 points per second elapsed
+      const timeDeduction = timeTakenSec * 5;
+      
+      const earnedPoints = Math.max(10, maxStepPoints - timeDeduction);
+      
+      setScore(prev => prev + earnedPoints);
       setRoundState('correct');
     } else {
       setGuessHistory(prev => [submitGuess, ...prev]);
@@ -140,7 +159,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
     if (currentRound < Math.min(ROUNDS, tracks.length) - 1) {
       setCurrentRound(prev => prev + 1);
     } else {
-      onFinish(score + (roundState === 'correct' ? 0 : 0), Math.min(ROUNDS, tracks.length)); // score is already updated
+      onFinish(score, Math.min(ROUNDS, tracks.length) * 1000); // 1000 max per round
     }
   };
 
@@ -148,9 +167,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
 
   return (
     <div className="flex flex-col items-center justify-center w-full p-4">
-      <div className="w-full max-w-2xl bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[32px] p-10 shadow-2xl flex flex-col items-center">
+      <div className="w-full max-w-2xl bg-neutral-900/40 border border-neutral-800 rounded-3xl p-10 flex flex-col items-center">
         {/* Header */}
-        <div className="w-full flex justify-between items-center mb-10 text-[10px] uppercase tracking-widest text-white/40 font-bold">
+        <div className="w-full flex justify-between items-center mb-10 text-[10px] uppercase tracking-[0.1em] text-neutral-500 font-bold">
           <span className="w-24">Runde {currentRound + 1} / {Math.min(ROUNDS, tracks.length)}</span>
           
           <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
@@ -180,28 +199,28 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
         <div className="w-full flex flex-col items-center space-y-8">
           
           {/* Visualizer / Artwork */}
-          <div className="relative w-48 h-48 rounded-[32px] shadow-2xl overflow-hidden bg-white/5 flex items-center justify-center border border-white/10 mb-2">
+          <div className="relative w-48 h-48 rounded-2xl overflow-hidden bg-neutral-950 flex items-center justify-center border border-neutral-800 mb-2">
             {roundState === 'playing' ? (
                <div className="flex space-x-2">
-                 <div className={`w-3 h-12 bg-emerald-400 rounded-full ${isPlaying ? 'animate-[bounce_1s_infinite]' : ''}`}></div>
-                 <div className={`w-3 h-16 bg-emerald-400 rounded-full ${isPlaying ? 'animate-[bounce_1s_infinite_100ms]' : ''}`}></div>
-                 <div className={`w-3 h-8 bg-emerald-400 rounded-full ${isPlaying ? 'animate-[bounce_1s_infinite_200ms]' : ''}`}></div>
-                 <div className={`w-3 h-14 bg-emerald-400 rounded-full ${isPlaying ? 'animate-[bounce_1s_infinite_300ms]' : ''}`}></div>
+                 <div className={`w-3 h-12 bg-emerald-500 rounded-full ${isPlaying ? 'animate-[bounce_1s_infinite]' : ''}`}></div>
+                 <div className={`w-3 h-16 bg-emerald-500 rounded-full ${isPlaying ? 'animate-[bounce_1s_infinite_100ms]' : ''}`}></div>
+                 <div className={`w-3 h-8 bg-emerald-500 rounded-full ${isPlaying ? 'animate-[bounce_1s_infinite_200ms]' : ''}`}></div>
+                 <div className={`w-3 h-14 bg-emerald-500 rounded-full ${isPlaying ? 'animate-[bounce_1s_infinite_300ms]' : ''}`}></div>
                </div>
             ) : (
                <img src={currentTrack.artworkUrl100.replace('100x100', '400x400')} alt="Artwork" className="w-full h-full object-cover" />
             )}
             
             {roundState === 'correct' && (
-              <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
-                <div className="bg-emerald-500 rounded-full p-2 shadow-xl shadow-emerald-500/50">
-                  <Check className="w-10 h-10 text-white" />
+              <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center backdrop-blur-sm">
+                <div className="bg-emerald-500 rounded-full p-3">
+                  <Check className="w-10 h-10 text-neutral-950" />
                 </div>
               </div>
             )}
             {roundState === 'wrong' && (
-              <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
-                <div className="bg-red-500 rounded-full p-2 shadow-xl shadow-red-500/50">
+              <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center backdrop-blur-sm">
+                <div className="bg-red-500 rounded-full p-3">
                   <X className="w-10 h-10 text-white" />
                 </div>
               </div>
@@ -211,8 +230,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
           {/* Answer Reveal */}
           {roundState !== 'playing' && (
             <div className="text-center animate-in fade-in slide-in-from-bottom-4 duration-500 w-full mb-4">
-              <h2 className="text-2xl font-bold text-white mb-2">{currentTrack.trackName}</h2>
-              <p className="text-sm tracking-widest uppercase text-white/40">{currentTrack.artistName}</p>
+              <h2 className="text-2xl font-bold text-neutral-100 mb-2 font-display">{currentTrack.trackName}</h2>
+              <p className="text-sm tracking-[0.1em] uppercase text-neutral-400">{currentTrack.artistName}</p>
             </div>
           )}
 
@@ -229,7 +248,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
                     />
                   ))}
                 </div>
-                <div className="flex justify-between text-[10px] text-white/30 font-mono tracking-tighter">
+                <div className="flex justify-between text-[10px] text-neutral-500 font-mono tracking-tighter">
                   {INTERVALS.map((int, i) => (
                     <span key={i} className={i === step ? 'text-emerald-400 font-bold' : ''}>{int}s</span>
                   ))}
@@ -240,13 +259,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
                 <button
                   onClick={handlePlay}
                   disabled={isPlaying}
-                  className="w-20 h-20 bg-emerald-500 hover:bg-emerald-400 text-black rounded-full flex items-center justify-center transition-transform active:scale-95 shadow-xl shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-20 h-20 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-full flex items-center justify-center transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isPlaying ? <Pause className="w-10 h-10" /> : <Play className="w-10 h-10 ml-1" />}
                 </button>
                 <button
                   onClick={handleSkip}
-                  className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-sm font-bold uppercase tracking-widest transition-colors"
+                  className="px-8 py-4 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-colors"
                   title="Skip til neste lydklipp"
                 >
                   Hopp over (+{step < maxStep ? INTERVALS[step + 1] - INTERVALS[step] : 0}s)
@@ -256,7 +275,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
               {/* Guess Input */}
               <div className="relative group w-full max-w-lg">
                 <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-white/30 group-focus-within:text-emerald-400 transition-colors" />
+                  <Search className="h-5 w-5 text-neutral-500 group-focus-within:text-emerald-400 transition-colors" />
                 </div>
                 <input
                   type="text"
@@ -272,7 +291,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
                     }
                   }}
                   placeholder="Skriv artist eller sangnavn..."
-                  className="w-full bg-black/40 border border-white/10 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 rounded-2xl py-5 pl-14 pr-32 text-lg outline-none transition-all placeholder:text-white/20 text-white"
+                  className="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 rounded-xl py-5 pl-14 pr-32 text-lg outline-none transition-all placeholder:text-neutral-600 text-neutral-100"
                 />
                 <button 
                   onClick={() => {
@@ -280,14 +299,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
                       handleGuessSubmit(searchQuery);
                     }
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-bold uppercase tracking-widest transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-lg text-sm font-bold uppercase tracking-[0.1em] transition-colors"
                 >
                   Gjett
                 </button>
                 
                 {/* Autocomplete Dropdown */}
                 {showOptions && searchQuery.trim() !== '' && options.length > 0 && (
-                  <div className="absolute z-10 w-full mt-2 bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-48 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-2 bg-neutral-950 border border-neutral-800 rounded-xl shadow-2xl overflow-hidden max-h-48 overflow-y-auto">
                     {options.map((opt, i) => (
                       <button
                         key={i}
@@ -296,7 +315,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
                           setShowOptions(false);
                           handleGuessSubmit(opt);
                         }}
-                        className="w-full text-left px-5 py-4 hover:bg-white/10 transition-colors text-white border-b border-white/5 last:border-0"
+                        className="w-full text-left px-5 py-4 hover:bg-neutral-900 transition-colors text-neutral-200 border-b border-neutral-800 last:border-0"
                       >
                         {opt}
                       </button>
@@ -308,9 +327,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
                 {guessHistory.length > 0 && (
                   <div className="w-full mt-6 space-y-2">
                     {guessHistory.map((pastGuess, i) => (
-                      <div key={i} className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl px-5 py-3 opacity-60">
-                        <span className="text-sm italic truncate text-white">{pastGuess}</span>
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-white/40 flex-shrink-0 ml-4">Feil</span>
+                      <div key={i} className="flex items-center justify-between bg-neutral-900 border border-neutral-800 rounded-xl px-5 py-3">
+                        <span className="text-sm italic truncate text-neutral-400">{pastGuess}</span>
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-neutral-600 flex-shrink-0 ml-4">Feil</span>
                       </div>
                     ))}
                   </div>
@@ -320,7 +339,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
           ) : (
             <button
               onClick={handleNextRound}
-              className="w-full max-w-lg py-5 bg-emerald-500 hover:bg-emerald-400 text-black rounded-2xl text-sm font-bold uppercase tracking-widest transition-transform active:scale-95 shadow-xl shadow-emerald-500/20"
+              className="w-full max-w-lg py-5 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-transform active:scale-95"
             >
               {currentRound < Math.min(ROUNDS, tracks.length) - 1 ? 'Neste sang' : 'Se resultat'}
             </button>

@@ -10,7 +10,8 @@ import { StartScreen } from './components/StartScreen';
 import { GameScreen } from './components/GameScreen';
 import { ResultScreen } from './components/ResultScreen';
 import { PvpGameScreen } from './components/PvpGameScreen';
-import { io, Socket } from 'socket.io-client';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { db } from './firebase';
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>('start');
@@ -19,29 +20,25 @@ export default function App() {
   const [score, setScore] = useState(0);
   const [totalRounds, setTotalRounds] = useState(0);
   
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [roomId, setRoomId] = useState<string>('');
+  const [playerId] = useState<string>(() => Math.random().toString(36).substring(2, 9));
+  const [isPlayer1, setIsPlayer1] = useState(false);
   const [opponentScore, setOpponentScore] = useState(0);
 
   useEffect(() => {
-    // Initialize socket
-    const newSocket = io();
-    setSocket(newSocket);
+    if (!roomId || gameState !== 'pvp_queue') return;
 
-    newSocket.on('pvp_queue_joined', () => {
-      setGameState('pvp_queue');
+    const unsubscribe = onSnapshot(doc(db, 'pvp_rooms', roomId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.status === 'playing') {
+          setGameState('pvp_playing');
+        }
+      }
     });
 
-    newSocket.on('pvp_game_start', ({ roomId: rId, tracks: pvpTracks }) => {
-      setRoomId(rId);
-      setTracks(pvpTracks);
-      setGameState('pvp_playing');
-    });
-
-    return () => {
-      newSocket.close();
-    };
-  }, []);
+    return () => unsubscribe();
+  }, [roomId, gameState]);
 
   const handleStart = async (selectedDifficulty: Difficulty) => {
     setDifficulty(selectedDifficulty);
@@ -62,11 +59,57 @@ export default function App() {
     }
   };
 
-  const handleJoinPvp = () => {
-    if (socket) {
-      socket.emit('join_pvp', difficulty);
+  const handleJoinPvp = async () => {
+    setGameState('pvp_queue');
+    try {
+      const q = query(collection(db, 'pvp_rooms'), where('status', '==', 'waiting'));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        // Join existing room
+        const roomDoc = querySnapshot.docs[0];
+        setRoomId(roomDoc.id);
+        setIsPlayer1(false);
+        setTracks(roomDoc.data().tracks);
+        
+        await updateDoc(doc(db, 'pvp_rooms', roomDoc.id), {
+          player2: playerId,
+          status: 'playing'
+        });
+      } else {
+        // Create new room
+        const fetchedTracks = await fetchTracks(difficulty);
+        if (fetchedTracks.length === 0) {
+          alert('Kunne ikke hente sanger.');
+          setGameState('start');
+          return;
+        }
+        setTracks(fetchedTracks);
+        setIsPlayer1(true);
+        
+        const newRoomRef = await addDoc(collection(db, 'pvp_rooms'), {
+          createdAt: serverTimestamp(),
+          status: 'waiting',
+          player1: playerId,
+          player2: null,
+          player1Score: 0,
+          player2Score: 0,
+          currentRound: 0,
+          tracks: fetchedTracks,
+          player1GuessedCorrectly: false,
+          player2GuessedCorrectly: false,
+          firstGuesserId: null,
+          roundEndsAt: null
+        });
+        setRoomId(newRoomRef.id);
+      }
+    } catch (error) {
+      console.error("Error joining PVP:", error);
+      alert('Kunne ikke koble til PVP.');
+      setGameState('start');
     }
   };
+
 
   const handleFinish = (finalScore: number, total: number) => {
     setScore(finalScore);
@@ -90,34 +133,32 @@ export default function App() {
 
   return (
     <div 
-      className="min-h-screen text-white font-sans flex flex-col overflow-x-hidden relative selection:bg-emerald-500/30 bg-cover bg-center bg-fixed bg-no-repeat"
+      className="min-h-screen text-neutral-100 font-sans flex flex-col overflow-x-hidden relative selection:bg-emerald-500/30 bg-cover bg-center bg-fixed bg-no-repeat"
       style={{ backgroundImage: 'url(/background.jpg)' }}
     >
-      <div className="fixed inset-0 bg-[#020617]/70 pointer-events-none"></div>
-      
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]"></div>
-      </div>
+      <div className="fixed inset-0 bg-neutral-950/85 pointer-events-none"></div>
       
       <nav className="relative z-10 flex flex-col md:flex-row items-center justify-between w-full max-w-7xl mx-auto px-6 py-8 md:px-12 gap-6 md:gap-0">
         <div className="flex items-center cursor-pointer" onClick={handleRestart}>
           <img src="/MUSIKKLOGO.png" alt="NorskMusikk" className="w-40 md:w-48 h-auto object-contain drop-shadow-xl" />
         </div>
         
-        <div className="flex bg-white/5 backdrop-blur-md rounded-full p-1 border border-white/10 flex-wrap justify-center">
+        <div className="flex gap-8 border-b border-white/10 pb-2">
           {(['lett', 'medium', 'vanskelig', 'umulig'] as Difficulty[]).map((d) => (
             <button
               key={d}
               onClick={() => handleStart(d)}
               disabled={gameState === 'loading'}
-              className={`px-4 sm:px-6 py-2 rounded-full text-sm font-semibold transition-all capitalize disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`text-sm font-semibold tracking-widest uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed relative ${
                 difficulty === d && gameState !== 'start'
-                  ? 'bg-white/10 text-white shadow-sm' 
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
+                  ? 'text-emerald-400' 
+                  : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
               {d}
+              {difficulty === d && gameState !== 'start' && (
+                <div className="absolute -bottom-[9px] left-0 w-full h-[2px] bg-emerald-400"></div>
+              )}
             </button>
           ))}
         </div>
@@ -134,8 +175,8 @@ export default function App() {
           </div>
         )}
         {gameState === 'playing' && <GameScreen tracks={tracks} onFinish={handleFinish} />}
-        {gameState === 'pvp_playing' && socket && (
-          <PvpGameScreen socket={socket} roomId={roomId} tracks={tracks} onFinish={handlePvpFinish} />
+        {gameState === 'pvp_playing' && roomId && (
+          <PvpGameScreen roomId={roomId} playerId={playerId} isPlayer1={isPlayer1} tracks={tracks} onFinish={handlePvpFinish} />
         )}
         {gameState === 'result' && <ResultScreen score={score} total={totalRounds} onRestart={handleRestart} difficulty={difficulty} />}
         {gameState === 'pvp_result' && (

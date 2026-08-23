@@ -54,45 +54,45 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRest
 
   return (
     <div className="flex flex-col items-center justify-center w-full p-4">
-      <div className="max-w-xl w-full bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[32px] p-10 shadow-2xl flex flex-col items-center text-center space-y-10">
+      <div className="max-w-xl w-full bg-neutral-900/40 border border-neutral-800 rounded-3xl p-10 flex flex-col items-center text-center space-y-10">
         
         <div className="flex justify-center">
-          <div className="w-24 h-24 rounded-[32px] bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+          <div className="w-24 h-24 rounded-2xl bg-neutral-950 flex items-center justify-center border border-neutral-800">
             <Trophy className="w-12 h-12 text-emerald-400" />
           </div>
         </div>
 
         <div>
-          <h2 className="text-4xl font-bold text-white mb-2">Ferdig!</h2>
-          <p className="text-white/40 tracking-widest uppercase text-sm">{message}</p>
+          <h2 className="text-4xl font-bold text-neutral-100 mb-2 font-display">Ferdig!</h2>
+          <p className="text-neutral-500 tracking-[0.1em] uppercase text-sm">{message}</p>
         </div>
 
-        <div className="py-8 w-full border-y border-white/10 flex flex-col items-center gap-2">
+        <div className="py-8 w-full border-y border-neutral-800 flex flex-col items-center gap-2">
           {isPvp ? (
             <div className="flex items-center justify-center gap-12 w-full">
               <div className="flex flex-col items-center">
-                <div className="text-6xl font-bold text-emerald-400">{score}</div>
-                <p className="text-[10px] uppercase tracking-widest font-bold mt-1 text-white/40">Deg</p>
+                <div className="text-6xl font-bold text-emerald-400 font-display">{score}</div>
+                <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">Deg</p>
               </div>
-              <div className="text-4xl font-bold text-white/20">-</div>
+              <div className="text-4xl font-bold text-neutral-700">-</div>
               <div className="flex flex-col items-center">
-                <div className="text-6xl font-bold text-red-400">{opponentScore}</div>
-                <p className="text-[10px] uppercase tracking-widest font-bold mt-1 text-white/40">Motstander</p>
+                <div className="text-6xl font-bold text-red-400 font-display">{opponentScore}</div>
+                <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">Motstander</p>
               </div>
             </div>
           ) : (
             <>
-              <div className="text-6xl font-bold text-white">
-                {score} <span className="text-3xl text-white/30">/ {total}</span>
+              <div className="text-6xl font-bold text-neutral-100 font-display">
+                {score} <span className="text-3xl text-neutral-700">/ {total}</span>
               </div>
-              <p className="text-[10px] uppercase tracking-widest font-bold mt-1 text-white/40">Riktige svar</p>
+              <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">Riktige svar</p>
             </>
           )}
         </div>
 
         {!submitted ? (
           <form onSubmit={handleSubmitScore} className="w-full space-y-4">
-            <p className="text-white/60 text-sm mb-2">Lagre poengsummen din på topplisten?</p>
+            <p className="text-neutral-400 text-sm mb-2">Lagre poengsummen din på topplisten?</p>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -101,15 +101,15 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRest
                 placeholder="Ditt navn..."
                 maxLength={20}
                 required
-                className="flex-1 bg-black/40 border border-white/10 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 rounded-2xl px-5 py-4 text-white outline-none"
+                className="flex-1 bg-neutral-950 border border-neutral-800 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 rounded-xl px-5 py-4 text-neutral-100 outline-none placeholder:text-neutral-600"
               />
               <button
                 type="submit"
                 disabled={isSubmitting || !playerName.trim()}
-                className="px-6 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:hover:bg-emerald-500 text-black rounded-2xl font-bold transition-colors flex items-center justify-center"
+                className="px-6 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:hover:bg-emerald-500 text-neutral-950 rounded-xl font-bold transition-colors flex items-center justify-center"
               >
                 {isSubmitting ? (
-                  <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <Send className="w-5 h-5" />
                 )}
@@ -117,14 +117,14 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRest
             </div>
           </form>
         ) : (
-          <div className="w-full p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 text-sm font-medium">
+          <div className="w-full p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm font-medium">
             Poengsummen din er lagret på topplisten!
           </div>
         )}
 
         <button
           onClick={onRestart}
-          className="w-full py-5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-sm font-bold uppercase tracking-widest transition-transform active:scale-95 flex items-center justify-center space-x-3"
+          className="w-full py-5 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-transform active:scale-95 flex items-center justify-center space-x-3"
         >
           <RefreshCw className="w-5 h-5" />
           <span>Spill igjen</span>
