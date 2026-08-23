@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Track } from '../types';
+import { Track, Region, Language } from '../types';
 import { Play, Pause, Search, Check, X, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { t } from '../i18n';
 
 interface PvpGameScreenProps {
   roomId: string;
@@ -10,9 +11,11 @@ interface PvpGameScreenProps {
   isPlayer1: boolean;
   tracks: Track[];
   onFinish: (myScore: number, opponentScore: number) => void;
+  region: Region;
+  uiLanguage: Language;
 }
 
-export const PvpGameScreen: React.FC<PvpGameScreenProps> = ({ roomId, playerId, isPlayer1, tracks, onFinish }) => {
+export const PvpGameScreen: React.FC<PvpGameScreenProps> = ({ roomId, playerId, isPlayer1, tracks, onFinish, region, uiLanguage }) => {
   const [currentRound, setCurrentRound] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [myScore, setMyScore] = useState(0);
@@ -71,7 +74,13 @@ export const PvpGameScreen: React.FC<PvpGameScreenProps> = ({ roomId, playerId, 
         setIsPlaying(false);
       });
     }
-  }, [currentRound, currentTrack, volume, isMuted]);
+  }, [currentRound, currentTrack]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
 
   // Sync with Firebase
   useEffect(() => {
@@ -223,8 +232,8 @@ export const PvpGameScreen: React.FC<PvpGameScreenProps> = ({ roomId, playerId, 
         {/* Header */}
         <div className="w-full flex justify-between items-center mb-10 text-[10px] uppercase tracking-[0.1em] text-neutral-500 font-bold">
           <div className="flex flex-col">
-            <span className="text-emerald-400">Du: {myScore}</span>
-            <span className="text-red-400">Motstander: {opponentScore}</span>
+            <span className="text-emerald-400">{t('you', uiLanguage)}: {myScore}</span>
+            <span className="text-red-400">{t('opponent', uiLanguage)}: {opponentScore}</span>
           </div>
           
           <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
@@ -247,7 +256,7 @@ export const PvpGameScreen: React.FC<PvpGameScreenProps> = ({ roomId, playerId, 
             />
           </div>
 
-          <span className="text-right">Runde {currentRound + 1} / {tracks.length}</span>
+          <span className="text-right">{t('round', uiLanguage)} {currentRound + 1} / {tracks.length}</span>
         </div>
 
         {/* Game Area */}
@@ -301,22 +310,22 @@ export const PvpGameScreen: React.FC<PvpGameScreenProps> = ({ roomId, playerId, 
                   onClick={handlePlay}
                   className="mb-6 px-8 py-4 bg-emerald-500 text-neutral-950 rounded-xl font-bold uppercase tracking-[0.1em] transition-transform active:scale-95"
                 >
-                  Start musikken
+                  {t('startMusic', uiLanguage)}
                 </button>
               )}
 
               {/* Countdown Alert */}
               {countdown !== null && countdown > 0 && roundState === 'playing' && (
                 <div className="mb-6 px-6 py-3 bg-red-500/20 border border-red-500/50 rounded-xl animate-pulse">
-                  <p className="text-red-400 font-bold tracking-[0.1em] uppercase">{roundWinner} {countdown}s igjen!</p>
+                  <p className="text-red-400 font-bold tracking-[0.1em] uppercase">{roundWinner} {countdown}s {t('timeLeft', uiLanguage)}</p>
                 </div>
               )}
 
               {roundState === 'waiting_opponent' ? (
                 <div className="w-full text-center p-10 bg-emerald-500/10 border border-emerald-500/30 rounded-3xl max-w-lg">
                   <Check className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
-                  <p className="text-emerald-400 font-bold text-xl mb-2 font-display">Riktig!</p>
-                  <p className="text-neutral-400 tracking-wider">Venter på motstander... {countdown !== null ? `${countdown}s` : ''}</p>
+                  <p className="text-emerald-400 font-bold text-xl mb-2 font-display">{t('correct', uiLanguage)}</p>
+                  <p className="text-neutral-400 tracking-wider">{t('waiting', uiLanguage)} {countdown !== null ? `${countdown}s` : ''}</p>
                 </div>
               ) : (
                 <div className="relative group w-full max-w-lg">
@@ -336,7 +345,7 @@ export const PvpGameScreen: React.FC<PvpGameScreenProps> = ({ roomId, playerId, 
                         handleGuessSubmit(searchQuery);
                       }
                     }}
-                    placeholder="Skriv artist eller sangnavn..."
+                    placeholder={t('placeholder', uiLanguage)}
                     className="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 rounded-xl py-5 pl-14 pr-32 text-lg outline-none transition-all placeholder:text-neutral-600 text-neutral-100"
                   />
                   <button 
@@ -347,7 +356,7 @@ export const PvpGameScreen: React.FC<PvpGameScreenProps> = ({ roomId, playerId, 
                     }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-lg text-sm font-bold uppercase tracking-[0.1em] transition-colors"
                   >
-                    Gjett
+                    {t('guessBtn', uiLanguage)}
                   </button>
                   
                   {/* Autocomplete Dropdown */}
@@ -375,7 +384,7 @@ export const PvpGameScreen: React.FC<PvpGameScreenProps> = ({ roomId, playerId, 
                       {guessHistory.map((pastGuess, i) => (
                         <div key={i} className="flex items-center justify-between bg-neutral-900 border border-neutral-800 rounded-xl px-5 py-3">
                           <span className="text-sm italic truncate text-neutral-400">{pastGuess}</span>
-                          <span className="text-[10px] uppercase font-bold tracking-[0.1em] text-neutral-600 flex-shrink-0 ml-4">Feil</span>
+                          <span className="text-[10px] uppercase font-bold tracking-[0.1em] text-neutral-600 flex-shrink-0 ml-4">{t('wrong', uiLanguage)}</span>
                         </div>
                       ))}
                     </div>
@@ -386,7 +395,7 @@ export const PvpGameScreen: React.FC<PvpGameScreenProps> = ({ roomId, playerId, 
           ) : (
             <div className="w-full text-center py-8">
               <Loader2 className="w-8 h-8 text-emerald-400 animate-spin mx-auto mb-4" />
-              <p className="text-neutral-400 text-sm font-bold tracking-[0.1em] uppercase">Gjør klar neste runde...</p>
+              <p className="text-neutral-400 text-sm font-bold tracking-[0.1em] uppercase">{t('preparing', uiLanguage)}</p>
             </div>
           )}
 

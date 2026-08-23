@@ -1,20 +1,24 @@
-import { Difficulty, Track } from './types';
+import { Difficulty, Region, Genre, Track } from './types';
+import { ARTISTS_BY_REGION, ARTISTS_BY_GENRE } from './artists';
 
-const ARTISTS: Record<Difficulty, string[]> = {
-  lett: ['Karpe', 'TIX', 'Kygo', 'Alan Walker', 'a-ha', 'Madcon', 'Marcus & Martinus', 'Hkeem'],
-  medium: ['Sigrid', 'Astrid S', 'Aurora', 'Girl in Red', 'Röyksopp', 'Matoma', 'Broiler', 'Julie Bergan'],
-  vanskelig: ['Sondre Justad', 'Kaizers Orchestra', 'Hellbillies', 'CC Cowboys', 'Dumdum Boys', 'Postgirobygget', 'Di Derre', 'Vamp'],
-  umulig: ['Jokke', 'Raga Rockers', 'DeLillos', 'Klovner i Kamp', 'Stein Torleif Bjella', 'Odd Nordstoga', 'Gåte', 'Seigmen']
-};
+export const fetchTracks = async (difficulty: Difficulty, region: Region = 'global', genre: Genre = 'all'): Promise<Track[]> => {
+  let artists: string[] = [];
+  
+  if (genre !== 'all' && ARTISTS_BY_GENRE[genre]) {
+    artists = ARTISTS_BY_GENRE[genre];
+  } else {
+    artists = ARTISTS_BY_REGION[region][difficulty];
+  }
 
-export const fetchTracks = async (difficulty: Difficulty): Promise<Track[]> => {
-  const artists = ARTISTS[difficulty];
   const allTracks: Track[] = [];
 
   const fetchPromises = artists.map(async (artist) => {
     try {
-      const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&media=music&entity=song&limit=15&country=no`);
+      // Map region to iTunes country code (use 'us' for global)
+      let countryCode = region === 'global' ? 'us' : region === 'uk' ? 'gb' : region;
+      const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(artist)}&media=music&entity=song&limit=15&country=${countryCode}`);
       const data = await response.json();
+      
       return data.results
         .filter((result: any) => result.previewUrl)
         .map((result: any) => ({
@@ -31,6 +35,7 @@ export const fetchTracks = async (difficulty: Difficulty): Promise<Track[]> => {
   });
 
   const results = await Promise.all(fetchPromises);
+  
   results.forEach(tracks => {
     allTracks.push(...tracks);
   });
@@ -44,6 +49,7 @@ export const fetchTracks = async (difficulty: Difficulty): Promise<Track[]> => {
   }
 
   const uniqueTracks = Array.from(uniqueMap.values());
+  
   // Shuffle
   return uniqueTracks.sort(() => 0.5 - Math.random());
 };

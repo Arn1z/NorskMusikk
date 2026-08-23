@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { RefreshCw, Trophy, Send } from 'lucide-react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { RefreshCw, Trophy, Share2 } from 'lucide-react';
+import { Region, Language } from '../types';
+import { t } from '../i18n';
 
 interface ResultScreenProps {
   score: number;
@@ -10,45 +10,54 @@ interface ResultScreenProps {
   isPvp?: boolean;
   opponentScore?: number;
   difficulty?: string;
+  region?: Region;
+  uiLanguage: Language;
 }
 
-export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRestart, isPvp, opponentScore, difficulty }) => {
+export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRestart, isPvp, opponentScore, difficulty, region, uiLanguage }) => {
   const percentage = Math.round((score / total) * 100);
   
-  const [playerName, setPlayerName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   let message = "";
   if (isPvp) {
-    if (score > (opponentScore || 0)) message = "Gratulerer, du vant!";
-    else if (score < (opponentScore || 0)) message = "Beklager, du tapte.";
-    else message = "Det ble uavgjort!";
+    if (score > (opponentScore || 0)) message = t('win', uiLanguage);
+    else if (score < (opponentScore || 0)) message = t('lose', uiLanguage);
+    else message = t('tie', uiLanguage);
   } else {
-    if (percentage === 100) message = "Perfekt! Du er et orakel.";
-    else if (percentage >= 80) message = "Veldig bra jobba!";
-    else if (percentage >= 50) message = "Ikke verst, men kan bli bedre.";
-    else message = "Uff da, kanskje prøve en lettere vanskelighetsgrad?";
+    if (percentage === 100) message = t('perfect', uiLanguage);
+    else if (percentage >= 80) message = t('great', uiLanguage);
+    else if (percentage >= 50) message = t('good', uiLanguage);
+    else message = t('bad', uiLanguage);
   }
 
-  const handleSubmitScore = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!playerName.trim() || isSubmitting) return;
+  const handleShare = async () => {
+    let textToShare = "";
+    if (isPvp) {
+      textToShare = `🎵 Music Quiz PVP!\nI scored ${score} vs ${opponentScore}!\nCan you beat me?`;
+    } else {
+      textToShare = `🎵 Music Quiz!\nI scored ${score}/${total} on ${difficulty || 'easy'} difficulty!\nCan you beat me?`;
+    }
 
-    setIsSubmitting(true);
-    try {
-      await addDoc(collection(db, 'leaderboard'), {
-        playerName: playerName.trim(),
-        score: score,
-        pvpWins: isPvp && score > (opponentScore || 0) ? 1 : 0,
-        difficulty: difficulty || 'ukjent',
-        createdAt: serverTimestamp()
-      });
-      setSubmitted(true);
-    } catch (error) {
-      console.error("Error submitting score:", error);
-    } finally {
-      setIsSubmitting(false);
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Music Quiz Result',
+          text: textToShare,
+          url: window.location.origin
+        });
+      } catch (err) {
+        console.error("Share failed", err);
+      }
+    } else {
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(`${textToShare}\n${window.location.origin}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error("Failed to copy", err);
+      }
     }
   };
 
@@ -63,7 +72,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRest
         </div>
 
         <div>
-          <h2 className="text-4xl font-bold text-neutral-100 mb-2 font-display">Ferdig!</h2>
+          <h2 className="text-4xl font-bold text-neutral-100 mb-2 font-display">{t('finished', uiLanguage)}</h2>
           <p className="text-neutral-500 tracking-[0.1em] uppercase text-sm">{message}</p>
         </div>
 
@@ -72,12 +81,12 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRest
             <div className="flex items-center justify-center gap-12 w-full">
               <div className="flex flex-col items-center">
                 <div className="text-6xl font-bold text-emerald-400 font-display">{score}</div>
-                <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">Deg</p>
+                <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">{t('you', uiLanguage)}</p>
               </div>
               <div className="text-4xl font-bold text-neutral-700">-</div>
               <div className="flex flex-col items-center">
                 <div className="text-6xl font-bold text-red-400 font-display">{opponentScore}</div>
-                <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">Motstander</p>
+                <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">{t('opponent', uiLanguage)}</p>
               </div>
             </div>
           ) : (
@@ -85,50 +94,29 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRest
               <div className="text-6xl font-bold text-neutral-100 font-display">
                 {score} <span className="text-3xl text-neutral-700">/ {total}</span>
               </div>
-              <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">Riktige svar</p>
+              <p className="text-[10px] uppercase tracking-[0.1em] font-bold mt-1 text-neutral-500">{t('correctAnswers', uiLanguage)}</p>
             </>
           )}
         </div>
 
-        {!submitted ? (
-          <form onSubmit={handleSubmitScore} className="w-full space-y-4">
-            <p className="text-neutral-400 text-sm mb-2">Lagre poengsummen din på topplisten?</p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Ditt navn..."
-                maxLength={20}
-                required
-                className="flex-1 bg-neutral-950 border border-neutral-800 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 rounded-xl px-5 py-4 text-neutral-100 outline-none placeholder:text-neutral-600"
-              />
-              <button
-                type="submit"
-                disabled={isSubmitting || !playerName.trim()}
-                className="px-6 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:hover:bg-emerald-500 text-neutral-950 rounded-xl font-bold transition-colors flex items-center justify-center"
-              >
-                {isSubmitting ? (
-                  <div className="w-5 h-5 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className="w-full p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm font-medium">
-            Poengsummen din er lagret på topplisten!
-          </div>
-        )}
+        <div className="w-full space-y-4">
+          <button
+            onClick={handleShare}
+            className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-transform active:scale-95 flex items-center justify-center space-x-3"
+          >
+            <Share2 className="w-5 h-5" />
+            <span>{copied ? t('copiedToClipboard', uiLanguage) : t('shareResult', uiLanguage)}</span>
+          </button>
 
-        <button
-          onClick={onRestart}
-          className="w-full py-5 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-transform active:scale-95 flex items-center justify-center space-x-3"
-        >
-          <RefreshCw className="w-5 h-5" />
-          <span>Spill igjen</span>
-        </button>
+          <button
+            onClick={onRestart}
+            className="w-full py-5 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-transform active:scale-95 flex items-center justify-center space-x-3"
+          >
+            <RefreshCw className="w-5 h-5" />
+            <span>{t('playAgain', uiLanguage)}</span>
+          </button>
+        </div>
+
       </div>
     </div>
   );

@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Track } from '../types';
+import { Track, Region, Language } from '../types';
 import { Play, Pause, SkipForward, Check, X, Search, Volume2, VolumeX } from 'lucide-react';
+import { t } from '../i18n';
 
 interface GameScreenProps {
   tracks: Track[];
   onFinish: (score: number, total: number) => void;
+  region: Region;
+  uiLanguage: Language;
 }
 
 const INTERVALS = [0.1, 0.5, 2.0, 8.0, 15.0];
 const ROUNDS = 5;
 
-export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
+export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish, region, uiLanguage }) => {
   const [currentRound, setCurrentRound] = useState(0);
   const [step, setStep] = useState(0); // 0 to 4
   const [isPlaying, setIsPlaying] = useState(false);
@@ -170,7 +173,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
       <div className="w-full max-w-2xl bg-neutral-900/40 border border-neutral-800 rounded-3xl p-10 flex flex-col items-center">
         {/* Header */}
         <div className="w-full flex justify-between items-center mb-10 text-[10px] uppercase tracking-[0.1em] text-neutral-500 font-bold">
-          <span className="w-24">Runde {currentRound + 1} / {Math.min(ROUNDS, tracks.length)}</span>
+          <span className="w-24">{t('round', uiLanguage)} {currentRound + 1} / {Math.min(ROUNDS, tracks.length)}</span>
           
           <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
             <button 
@@ -268,7 +271,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
                   className="px-8 py-4 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-colors"
                   title="Skip til neste lydklipp"
                 >
-                  Hopp over (+{step < maxStep ? INTERVALS[step + 1] - INTERVALS[step] : 0}s)
+                  {t('skip', uiLanguage)} (+{step < maxStep ? INTERVALS[step + 1] - INTERVALS[step] : 0}s)
                 </button>
               </div>
 
@@ -290,7 +293,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
                       handleGuessSubmit(searchQuery);
                     }
                   }}
-                  placeholder="Skriv artist eller sangnavn..."
+                  placeholder={t('placeholder', uiLanguage)}
                   className="w-full bg-neutral-950 border border-neutral-800 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 rounded-xl py-5 pl-14 pr-32 text-lg outline-none transition-all placeholder:text-neutral-600 text-neutral-100"
                 />
                 <button 
@@ -301,7 +304,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
                   }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-lg text-sm font-bold uppercase tracking-[0.1em] transition-colors"
                 >
-                  Gjett
+                  {t('guessBtn', uiLanguage)}
                 </button>
                 
                 {/* Autocomplete Dropdown */}
@@ -329,7 +332,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
                     {guessHistory.map((pastGuess, i) => (
                       <div key={i} className="flex items-center justify-between bg-neutral-900 border border-neutral-800 rounded-xl px-5 py-3">
                         <span className="text-sm italic truncate text-neutral-400">{pastGuess}</span>
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-neutral-600 flex-shrink-0 ml-4">Feil</span>
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-neutral-600 flex-shrink-0 ml-4">{t('wrong', uiLanguage)}</span>
                       </div>
                     ))}
                   </div>
@@ -341,7 +344,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ tracks, onFinish }) => {
               onClick={handleNextRound}
               className="w-full max-w-lg py-5 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 rounded-xl text-sm font-bold uppercase tracking-[0.1em] transition-transform active:scale-95"
             >
-              {currentRound < Math.min(ROUNDS, tracks.length) - 1 ? 'Neste sang' : 'Se resultat'}
+              {currentRound < Math.min(ROUNDS, tracks.length) - 1 ? t('nextSong', uiLanguage) : t('seeResult', uiLanguage)}
             </button>
           )}
 
